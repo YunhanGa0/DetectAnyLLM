@@ -1,19 +1,39 @@
-import torch
 import torch.nn.functional as F
 
 
-def calculate_DPO_loss(model_prefered_logprob, model_disprefered_logprob,
-                       ref_prefered_logprob, ref_disprefered_logprob,
-                       beta=0.5):
+def calculate_multitask_loss(
+    outputs,
+    labels,
+    lir,
+    jaccard,
+    sentence_jaccard,
+    lambda_lir=1.0,
+    lambda_jaccard=1.0,
+    lambda_sentence_jaccard=1.0,
+    regression_loss_type="mse",
+):
+    cls_loss = F.cross_entropy(outputs["logits"], labels)
 
-    prefered_relative_logprob = model_prefered_logprob - ref_prefered_logprob
-    disprefered_relative_logprob = model_disprefered_logprob - ref_disprefered_logprob
+    if regression_loss_type == "l1":
+        regression_loss = F.l1_loss
+    else:
+        regression_loss = F.mse_loss
 
-    reward_accuracies = (prefered_relative_logprob > disprefered_relative_logprob).float().mean(dim=-1)
-    reward_margins = (prefered_relative_logprob - disprefered_relative_logprob).mean(dim=-1)
-    loss = -F.logsigmoid(beta * (prefered_relative_logprob - disprefered_relative_logprob)).mean(dim=-1)
-    
-    return loss, prefered_relative_logprob.mean(dim=-1), disprefered_relative_logprob.mean(dim=-1), reward_accuracies, reward_margins
+    lir_loss = regression_loss(outputs["pred_lir"], lir)
+    jaccard_loss = regression_loss(outputs["pred_jaccard"], jaccard)
+    sentence_jaccard_loss = regression_loss(
+        outputs["pred_sentence_jaccard"], sentence_jaccard
+    )
 
-def calculate_DDL_loss(original_crit, rewritten_crit, target_original_crit=0, target_rewritten_crit=100):
-    return torch.abs(target_original_crit - original_crit).mean(dim=-1) + torch.abs(target_rewritten_crit - rewritten_crit).mean(dim=-1)
+    total_loss = (
+        cls_loss
+        + lambda_lir * lir_loss
+        + lambda_jaccard * jaccard_loss
+        + lambda_sentence_jaccard * sentence_jaccard_loss
+    )
+    return total_loss, {
+        "loss_cls": cls_loss.detach(),
+        "loss_lir": lir_loss.detach(),
+        "loss_jaccard": jaccard_loss.detach(),
+        "loss_sentence_jaccard": sentence_jaccard_loss.detach(),
+    }
