@@ -1,7 +1,19 @@
 SCORING_MODEL="roberta-base"
-TRAIN_DATA="./mixed_dataset_DeepSeek-V3.2.jsonl"
-EVAL_DATA="./mixed_dataset_DeepSeek-V3.2.jsonl"
-CKPT_NAME="multitask_deepseek_v32_demo"
+TRAIN_DATA="./mydata/benchmark_grouped/train.jsonl"
+EVAL_DATA="./mydata/benchmark_grouped/test.jsonl"
+CKPT_NAME="multitask_benchmark_grouped"
+WANDB_DIR="./log"
+
+# Default to offline wandb so the script works on servers without network access.
+# For online logging, run:
+#   wandb login
+#   WANDB_MODE=online WANDB_ENTITY=your_entity sh scripts/train.sh
+export WANDB_MODE="${WANDB_MODE:-offline}"
+
+WANDB_ARGS="--use_wandb --wandb_dir ${WANDB_DIR}"
+if [ -n "${WANDB_ENTITY}" ]; then
+    WANDB_ARGS="${WANDB_ARGS} --wandb_entity ${WANDB_ENTITY}"
+fi
 
 accelerate launch train.py \
     --scoring_model_name ${SCORING_MODEL} \
@@ -12,4 +24,9 @@ accelerate launch train.py \
     --num_epochs 5 \
     --save_freq 1 \
     --ckpt_name ${CKPT_NAME} \
-    --eval True
+    --lambda_lir 1.0 \
+    --lambda_jaccard 1.0 \
+    --lambda_sentence_jaccard 1.0 \
+    --regression_loss_type mse \
+    --eval True \
+    ${WANDB_ARGS}

@@ -224,6 +224,7 @@ class Trainer:
                         prediction_rows.append(
                             {
                                 "id": sample_id,
+                                "split": batch["splits"][idx],
                                 "text": batch["texts"][idx],
                                 "gold_label_6way": int(batch["labels"][idx].detach().cpu()),
                                 "gold_ai_ratio": float(batch["target_ai_ratio"][idx].detach().cpu()),
@@ -237,6 +238,7 @@ class Trainer:
                                 "pred_lir": float(local_lir_preds[idx]),
                                 "pred_jaccard": float(local_jaccard_preds[idx]),
                                 "pred_sentence_jaccard": float(local_sentence_preds[idx]),
+                                "target_notes": batch["target_notes"][idx],
                             }
                         )
 

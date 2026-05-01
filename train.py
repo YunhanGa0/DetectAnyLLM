@@ -10,11 +10,22 @@ from core.model import DiscrepancyEstimator
 from core.trainer import Trainer
 
 
+def str2bool(value):
+    if isinstance(value, bool):
+        return value
+    value = value.lower()
+    if value in {"true", "1", "yes", "y"}:
+        return True
+    if value in {"false", "0", "no", "n"}:
+        return False
+    raise argparse.ArgumentTypeError("Boolean value expected.")
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--scoring_model_name", type=str, default="roberta-base")
 parser.add_argument("--cache_dir", type=str, default="./model/")
-parser.add_argument("--train_data_path", type=str, required=True)
-parser.add_argument("--eval_data_path", type=str, required=True)
+parser.add_argument("--train_data_path", type=str, default="./mydata/benchmark_grouped/train.jsonl")
+parser.add_argument("--eval_data_path", type=str, default="./mydata/benchmark_grouped/test.jsonl")
 parser.add_argument("--train_batch_size", type=int, default=8)
 parser.add_argument("--eval_batch_size", type=int, default=8)
 parser.add_argument("--learning_rate", type=float, default=1e-4)
@@ -23,7 +34,8 @@ parser.add_argument("--eval_freq", type=int, default=1)
 parser.add_argument("--save_freq", type=int, default=1)
 parser.add_argument("--save_directory", type=str, default="./ckpt/")
 parser.add_argument("--ckpt_name", type=str, default=None)
-parser.add_argument("--wandb", type=bool, default=False)
+parser.add_argument("--wandb", type=str2bool, nargs="?", const=True, default=False)
+parser.add_argument("--use_wandb", dest="wandb", action="store_true")
 parser.add_argument("--wandb_dir", type=str, default="./log/")
 parser.add_argument("--wandb_entity", type=str, default=None)
 parser.add_argument("--max_length", type=int, default=1024)
@@ -35,7 +47,7 @@ parser.add_argument("--lambda_lir", type=float, default=1.0)
 parser.add_argument("--lambda_jaccard", type=float, default=1.0)
 parser.add_argument("--lambda_sentence_jaccard", type=float, default=1.0)
 parser.add_argument("--regression_loss_type", type=str, default="mse", choices=["mse", "l1"])
-parser.add_argument("--eval", type=bool, default=True)
+parser.add_argument("--eval", type=str2bool, nargs="?", const=True, default=True)
 
 
 def main(args):
